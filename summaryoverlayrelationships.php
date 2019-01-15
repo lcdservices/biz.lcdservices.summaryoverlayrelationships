@@ -134,10 +134,39 @@ function summaryoverlayrelationships_civicrm_entityTypes(&$entityTypes) {
   _summaryoverlayrelationships_civix_civicrm_entityTypes($entityTypes);
 }
 
-function summaryoverlayrelationships_civicrm_buildForm($formName, &$form) {
-    
- CRM_Core_Resources::singleton()->addScriptFile(E::LONG_NAME, 'js/Summaryoverlay.js');
+function summaryoverlayrelationships_civicrm_alterContent(&$content, $context, $tplName, &$object) {
+  /*Civi::log()->debug('summaryoverlayrelationships_civicrm_alterContent', [
+    '$content' => $content,
+    '$context' => $context,
+    '$tplName' => $tplName,
+    '$object' => $object,
+  ]);*/
 
+  if (is_a($object, 'CRM_Profile_Page_View')) {
+    $overlayProfileId = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_UFGroup', 'summary_overlay', 'id', 'name');
 
+    if ($object->getVar('_gid') == $overlayProfileId) {
+      $relHtml = '';
+      try {
+        $rels = civicrm_api3('relationship', 'get', ['contact_id' => $object->getVar('_id')]);
+        //Civi::log()->debug('summaryoverlayrelationships_civicrm_pageRun', ['$rels' => $rels]);
+
+        $relHtml .= '<tr class="osi-relationships">';
+        foreach ($rels['values'] as $rel) {
+          $relHtml .= "<td colspan=2>{$rel['relation']} {$rel['display_name']}</td>";
+        }
+        $relHtml .= '</tr>';
+      } catch (CiviCRM_API3_Exception $e) {
+      }
+
+      $doc = phpQuery::newDocumentHTML($content);
+      $doc['table.crm-table-group-summary']->append("<tr><td colspan='2'>{$relHtml}</td></tr>");
+      $content = $doc->html();
+
+      /*Civi::log()->debug('summaryoverlayrelationships_civicrm_alterContent', [
+        '$relHtml' => $relHtml,
+        '$content' => $content,
+      ]);*/
+    }
+  }
 }
-
